@@ -1,0 +1,24 @@
+
+# Ambientes virtuais Python
+venv/
+.venv/
+env/
+
+# Cache Python
+__pycache__/
+*.py[cod]
+
+# Variáveis de ambiente e credenciais
+.env
+.env.*
+!.env.example
+
+# Configurações do editor
+.vscode/
+.idea/
+
+# Arquivos do sistema
+.DS_Store
+Thumbs.db
+banco_de_dados/
+tempCodeRunnerFile.py
