@@ -1,35 +1,57 @@
 # O arquivo estatisticas serve para o processamento e análise dos dados meteorológicos.
-from statistics import mean, median, stdev
+
+from math import sqrt
+
+from database import agregados_por_dia
 
 
-def resumir(valores):
-    """Recebe uma lista de números e devolve um dicionário com as estatísticas."""
-    if not valores:
+def resumir(n, soma, soma_quadrados, minimo, maximo):
+    """Transforma somas já calculadas em média, desvio padrão, mínimo e máximo.
+
+    Desvio padrão amostral: sqrt((Σx² − (Σx)²/n) / (n − 1)).
+    """
+    if not n:
         return None
+    media = soma / n
+    if n > 1:
+        variancia = (soma_quadrados - soma * soma / n) / (n - 1)
+        desvio = sqrt(max(variancia, 0.0))  # max evita erro de arredondamento negativo
+    else:
+        desvio = 0.0
     return {
-        "media": round(mean(valores), 2),
-        "desvio_padrao": round(stdev(valores), 2) if len(valores) > 1 else 0.0,
+        "media": round(media, 2),
+        "desvio_padrao": round(desvio, 2),
+        "minimo": round(minimo, 2),
+        "maximo": round(maximo, 2),
     }
 
 
-def estatisticas_gerais(leituras):
-    temperaturas = [l["temperatura"] for l in leituras]
-    umidades = [l["umidade"] for l in leituras]
+def _montar(dias):
+    """Junta um ou mais grupos de agregados em um único resultado."""
+    total = sum(d["n"] for d in dias)
+    if not total:
+        return {"total_leituras": 0, "temperatura": None, "umidade": None}
+
+    def resumo(soma, quad, minimo, maximo):
+        return resumir(
+            total,
+            sum(d[soma] for d in dias),
+            sum(d[quad] for d in dias),
+            min(d[minimo] for d in dias),
+            max(d[maximo] for d in dias),
+        )
+
     return {
-        "total_leituras": len(leituras),
-        "temperatura": resumir(temperaturas),
-        "umidade": resumir(umidades),
+        "total_leituras": total,
+        "temperatura": resumo("soma_t", "quad_t", "min_t", "max_t"),
+        "umidade": resumo("soma_u", "quad_u", "min_u", "max_u"),
     }
 
 
-def estatisticas_por_dia(leituras):
-    """Agrupa as leituras por dia (em horário de SP) usando um dicionário de listas."""
-    por_dia = {}
-    for leitura in leituras:
-        dia = leitura["data_hora"][:10]  # 'AAAA-MM-DD'
-        por_dia.setdefault(dia, []).append(leitura)
+def estatisticas_gerais():
+    return _montar(agregados_por_dia())
 
-    resultado = []
-    for dia in sorted(por_dia):
-        resultado.append({"dia": dia, **estatisticas_gerais(por_dia[dia])})
-    return resultado
+
+def estatisticas_por_dia():
+    """Uma linha por dia (em horário de SP), da mais antiga para a mais recente."""
+    return [{"dia": d["dia"], **_montar([d])} for d in agregados_por_dia()]

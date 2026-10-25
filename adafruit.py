@@ -1,11 +1,21 @@
 # O arquivo adafruit serve para buscar as leituras que o ESP enviou ao Adafruit IO.
+
 import json
+import os
 from datetime import datetime, timedelta, timezone
 
 import requests
 
-URL_FEED = "https://io.adafruit.com/api/v2/larielivitoria/feeds/estacao/data"
+# O endereço do feed pode ser trocado por variável de ambiente, sem mexer no código.
+URL_FEED = os.getenv(
+    "ADAFRUIT_FEED_URL",
+    "https://io.adafruit.com/api/v2/larielivitoria/feeds/estacao/data",
+)
+
 FUSO_SP = timezone(timedelta(hours=-3))  # UTC-3 (horário de Brasília)
+
+# Uma Session reaproveita a conexão HTTP entre as chamadas (mais rápido que requests.get solto).
+_sessao = requests.Session()
 
 
 def converter_para_sp(created_at):
@@ -16,7 +26,7 @@ def converter_para_sp(created_at):
 
 def buscar_leituras(limite=1000):
     """Consulta o feed e devolve uma lista de dicionários já tratados."""
-    resposta = requests.get(URL_FEED, params={"limit": limite}, timeout=15)
+    resposta = _sessao.get(URL_FEED, params={"limit": limite}, timeout=15)
     resposta.raise_for_status()
 
     leituras = []

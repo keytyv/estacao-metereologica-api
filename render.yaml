@@ -1,0 +1,16 @@
+# Blueprint do Render: cria o serviço com tudo configurado a partir do GitHub.
+services:
+  - type: web
+    name: estacao-metereologica-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /saude
+    envVars:
+      - key: SYNC_TOKEN
+        generateValue: true      # o Render gera uma senha aleatória para você
+      - key: CORS_ORIGINS
+        value: "*"               # troque pelo endereço do dashboard da sua amiga
+      - key: SYNC_INTERVAL_MINUTES
+        value: "5"
